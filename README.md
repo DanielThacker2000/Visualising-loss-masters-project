@@ -1,1 +1,1 @@
-# Machine-learning-intervals
+# Visualising loss masters project
