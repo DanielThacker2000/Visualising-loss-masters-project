@@ -56,10 +56,152 @@ class MixtureModel(stats.rv_continuous):
 # =============================================================================
 # Simulate data functions
 # =============================================================================
-#Cubic
-# def generate_data_mixture(num_samples, mixture_model):
+def apply_block_normal_noise(data, start_index=0, end_index=10, noise_std=1, block_size=10, block_fraction=0.05, noise_mean=0):
+    """
+    Applies normal noise to a random consecutive block of the data.
     
+    Parameters:
+    data (array-like): The original data to which noise will be applied.
+    block_fraction (float): The fraction of the data to which noise will be applied. Default is 0.05 (5%).
+    noise_mean (float): The mean of the normal noise to be applied. Default is 0.
+    noise_std (float): The standard deviation of the normal noise to be applied. Default is 1.
+    
+    Returns:
+    noisy_data (array-like): The data with normal noise applied to a consecutive block.
+    """
 
+    # data_length = len(data)
+    # block_size = int(data_length * block_fraction)
+    
+    # if block_size == 0:
+    #     raise ValueError("Block size is too small. Increase the block_fraction or data size.")
+    
+    # # Randomly choose the starting index for the block
+    # start_index = np.random.randint(0, data_length - block_size + 1)
+    # end_index = start_index + block_size
+    
+    # Apply normal noise to the selected block
+    sign= 1
+    if np.random.choice([0, 1]):
+        sign= -1
+    noise = np.random.normal(noise_mean, noise_std, block_size)
+    noisy_data = data.copy()
+    noisy_data[start_index:end_index] += noise*sign
+    plt.plot(noisy_data)
+    return noisy_data.reshape(-1,1)
+
+def apply_normal_noise(data, std):
+    """
+    Applies Bernoulli noise to a distribution.
+    
+    Parameters:
+    data (array-like): The original data to which noise will be applied.
+    flip_prob (float): The probability of flipping each data point.
+    
+    Returns:
+    noisy_data (array-like): The data with Bernoulli noise applied.
+    """
+    noisy_data = np.array([])
+
+    # Apply noise by flipping the sign of the data points where flips == 1
+    for data_point in data:
+        noise = np.random.normal(loc=0, scale=std)
+        data_point = data_point + noise
+        noisy_data = np.append(noisy_data, data_point)
+    return noisy_data.reshape(-1,1)
+
+def apply_student_noise(data, std):
+    """
+    Applies Bernoulli noise to a distribution.
+    
+    Parameters:
+    data (array-like): The original data to which noise will be applied.
+    flip_prob (float): The probability of flipping each data point.
+    
+    Returns:
+    noisy_data (array-like): The data with Bernoulli noise applied.
+    """
+
+    noisy_data = np.array([])
+    # Generate Bernoulli noise
+
+    # Apply noise by flipping the sign of the data points where flips == 1
+    for data_point in data:
+        if std==0:
+            std=0.0001
+        noise = np.random.standard_t(std, size=1)#"std" is actuall the DoF, or nu
+        data_point = data_point + noise
+        noisy_data = np.append(noisy_data, data_point)
+    return noisy_data.reshape(-1,1)
+
+def apply_laplace_noise(data, std):
+    """
+    Applies Bernoulli noise to a distribution.
+    
+    Parameters:
+    data (array-like): The original data to which noise will be applied.
+    flip_prob (float): The probability of flipping each data point.
+    
+    Returns:
+    noisy_data (array-like): The data with Bernoulli noise applied.
+    """
+
+    noisy_data = np.array([])
+    # Generate Bernoulli noise
+
+    # Apply noise by flipping the sign of the data points where flips == 1
+    for data_point in data:
+
+        noise = stats.laplace.rvs(scale=std, size=1)
+        data_point = data_point + noise
+        noisy_data = np.append(noisy_data, data_point)
+    return noisy_data.reshape(-1,1)
+
+def apply_cauchy_noise(data, std):
+    """
+    Applies Bernoulli noise to a distribution.
+    
+    Parameters:
+    data (array-like): The original data to which noise will be applied.
+    flip_prob (float): The probability of flipping each data point.
+    
+    Returns:
+    noisy_data (array-like): The data with Bernoulli noise applied.
+    """
+    #noise_maker  = stats.cauchy(size=1)
+    noisy_data = np.array([])
+    # Generate Bernoulli noise
+
+    # Apply noise by flipping the sign of the data points where flips == 1
+    for data_point in data:
+        if std==0:
+            std=0.0001
+        #noise = np.random.standard_cauchy(std, size=1)#"std" is actuall the DoF, or nu
+        noise = stats.cauchy.rvs(loc=0,scale=std,size=1)
+        data_point = data_point + noise
+        noisy_data = np.append(noisy_data, data_point)
+    return noisy_data.reshape(-1,1)
+
+def apply_bernoulli_noise(data, flip_prob=0.1):
+    """
+    Applies Bernoulli noise to a distribution.
+    
+    Parameters:
+    data (array-like): The original data to which noise will be applied.
+    flip_prob (float): The probability of flipping each data point.
+    
+    Returns:
+    noisy_data (array-like): The data with Bernoulli noise applied.
+    """
+    noisy_data = np.array([])
+    # Generate Bernoulli noise
+    flips = np.random.choice([0, 1], size=data.shape, p=[1-flip_prob, flip_prob])
+    # Apply noise by flipping the sign of the data points where flips == 1
+    for data_point,flip in zip(data,flips):
+        data_point = data_point + flip
+        noisy_data = np.append(noisy_data, data_point)
+    return noisy_data
+#Cubic
 def randomly_generate_cube(x_train_dict, y_train_dict, noise_type, std, num_samples, range_start=-1,range_stop=1,half_norm_loc = 1,  std_dev=0.4):
     """
     y = x**3 + normal noise
@@ -83,7 +225,7 @@ def randomly_generate_cube(x_train_dict, y_train_dict, noise_type, std, num_samp
             x=x[0]
             #x = np.random.normal(loc=1, scale=standard_deviation)
         noise = np.random.normal(loc=0, scale=std)
-        y = x**3 + noise 
+        y = x**3 #+ noise 
         y_train.append(y)  # Append standard_deviation as a new row
         x_train.append(x)  # Append gaussian vector as a new row
     x_train = np.array(x_train)
@@ -107,7 +249,7 @@ def linear_function(x):
 def normal_mixture_function(x):
     scaler = 40
     mixture_model = MixtureModel([stats.norm(3, 1), 
-                                  stats.norm(9, 0.1), 
+                                  stats.norm(8, 0.3), 
                                   stats.norm(11,3)],
                                  weights = [0.2, 0.01, 0.05])
     return scaler*mixture_model.pdf(x)
@@ -123,22 +265,21 @@ def iterate_over_std(x_train_dict, y_train_dict, noise_type, std, x_vals, functi
     y_train = []
     x_train = []
     for x in x_vals:
-        #x = np.random.normal(loc=1, scale=standard_deviation)
-        noise = noise_maker.rvs(size=1)
-        y = function(x) + noise 
+        #noise = noise_maker.rvs(size=1)
+        y = function(x) #+ noise 
         y_train.append(y)  
         x_train.append(x)  
+
     x_train = np.array(x_train)
     y_train = np.array(y_train)
-
+    #y_train = apply_block_normal_noise(y_train)
+    
     x_train_sorted = np.transpose(x_train)
     y_train_sorted = np.transpose(y_train)
     x_train_dict[std] = x_train_sorted.reshape(-1,1)
     y_train_dict[std] = y_train_sorted.reshape(-1,1)
     return x_train_dict, y_train_dict
-
-
-    
+   
 #Normally distributed but hetorscedastic - very tricky for mlp to solve -  easy for CQR
 def generate_data_norm(num_samples, std_dev=0.5):
     x_train = np.linspace(start=0, stop=10, num=num_samples)
@@ -173,7 +314,6 @@ def generate_data_exp(num_samples, std_dev=2):
     mean = 1
     standard_deviation=1
    
-       
     rv = norm(loc = mean, scale = standard_deviation)
     x = np.linspace(start=-1, stop=3, num=num_samples)
     #x = np.random.normal(loc=mean, scale=standard_deviation)
@@ -181,7 +321,6 @@ def generate_data_exp(num_samples, std_dev=2):
     y = np.exp(x) + noise
     y_train.append(y)  # Append standard_deviation as a new row
     x_train.append(x)  # Append gaussian vector as a new row
-       
     return np.transpose(np.array(x_train)), np.transpose(np.array(y_train))
 
 def x_sinx(x):
@@ -193,12 +332,13 @@ def generate_data_with_heteroscedastic_noise(x_train_dict, y_train_dict, min_x, 
     Generate 1D noisy data uniformely from the given function
     and standard deviation for the noise.
     """
+
     X_train = np.linspace(min_x, max_x, n_samples)
     np.random.shuffle(X_train)
     X_test = np.linspace(min_x, max_x, n_samples*5)
     y_train = (
         x_sinx(X_train) +
-        (np.random.normal(0, std, len(X_train)) * X_train)
+        (np.random.normal(0, 0.5, len(X_train)) * X_train)
     )
 
     x_train_dict[std] = X_train.reshape(-1, 1)
@@ -212,33 +352,67 @@ def generate_data_with_constant_noise(x_train_dict, y_train_dict, min_x, max_x, 
     and standard deviation for the noise.
     """
     X_train = np.linspace(min_x, max_x, n_samples)
-    np.random.shuffle(X_train)
+    #np.random.shuffle(X_train)
     X_test = np.linspace(min_x, max_x, n_samples)
     y_train = x_sinx(X_train)
-    y_train += np.random.normal(0, std, y_train.shape[0])
+    #y_train += np.random.normal(0, std, y_train.shape[0])
 
     x_train_dict[std] = X_train.reshape(-1, 1)
     y_train_dict[std] = y_train.reshape(-1, 1)
     return x_train_dict, y_train_dict
 
-def generate_data(num_samples=300,stds=[0.3,0.5,0.7,1],noise_types=["norm","student-t","mixture"], function=linear_function):
+def generate_data(num_samples=300,stds=[0.3,0.5,0.7,1],noise_type="normal", function=linear_function):
     y_train_dict = {}
     x_train_dict = {}
 
     x_vals = np.linspace(start=0, stop=10, num=num_samples)
 
-    for noise_type in noise_types:
-        if function =="cube":
-            for std in stds:
-                x_train_dict, y_train_dict = randomly_generate_cube(x_train_dict, y_train_dict, noise_type, std, num_samples)
-        elif function =="sinex_con":
-            for std in stds:
-                x_train_dict, y_train_dict = generate_data_with_constant_noise(x_train_dict, y_train_dict, -5, 5, std, num_samples)
-        elif function =="sinex_het":
-            for std in stds:
-                x_train_dict, y_train_dict = generate_data_with_heteroscedastic_noise(x_train_dict, y_train_dict, -5, 5, std, num_samples)
-        else:
-            for std in stds:
-                x_train_dict, y_train_dict = iterate_over_std(x_train_dict, y_train_dict, noise_type, std, x_vals, function)
+    if function =="cube":
+        for std in stds:
+            x_train_dict, y_train_dict = randomly_generate_cube(x_train_dict, y_train_dict, noise_type, std, num_samples)
+    elif function =="sinex_con":
+        for std in stds:
+            x_train_dict, y_train_dict = generate_data_with_constant_noise(x_train_dict, y_train_dict, -5, 5, std, num_samples)
+    elif function =="sinex_het":
+        for std in stds:
+            x_train_dict, y_train_dict = generate_data_with_heteroscedastic_noise(x_train_dict, y_train_dict, -5, 5, std, num_samples)
+    else:
+        for std in stds:
+            x_train_dict, y_train_dict = iterate_over_std(x_train_dict, y_train_dict, noise_type, std, x_vals, function)
+    
+    #APPLY NOISE
+    if noise_type =="block":
+        block_fraction=0.05
+        data_length = len(y_train_dict[std].ravel())
+        block_size = int(data_length * block_fraction)
         
+        if block_size == 0:
+            raise ValueError("Block size is too small. Increase the block_fraction or data size.")
+        
+        # Randomly choose the starting index for the block
+        start_index = np.random.randint(0, data_length - block_size + 1, size=[3,])
+        end_index=[]
+        for index in start_index:
+            end_indi = index + block_size
+            end_index.append(end_indi)
+    for std in stds:
+        if noise_type == "block":
+            #If block noise is selected add 3 random jumps to the distribution then some gaussian noise
+            y_train_dict[std] = apply_block_normal_noise(y_train_dict[std].ravel(),start_index[0],end_index[0], std,block_size)
+            y_train_dict[std] = apply_block_normal_noise(y_train_dict[std].ravel(),start_index[1],end_index[1], std,block_size)
+            y_train_dict[std] = apply_block_normal_noise(y_train_dict[std].ravel(),start_index[2],end_index[2], std,block_size)
+            #y_train_dict[std] = apply_normal_noise(y_train_dict[std].ravel(),0.3)
+            
+        elif noise_type == "normal":
+            y_train_dict[std] = apply_normal_noise(y_train_dict[std].ravel(),std)
+        elif noise_type == "student":
+            y_train_dict[std] = apply_student_noise(y_train_dict[std].ravel(),std)
+        elif noise_type == "cauchy":
+            y_train_dict[std] = apply_cauchy_noise(y_train_dict[std].ravel(),std)
+        elif noise_type == "laplace":
+            y_train_dict[std] = apply_laplace_noise(y_train_dict[std].ravel(),std)
+        else:
+            pass
+            
     return x_train_dict, y_train_dict
+
