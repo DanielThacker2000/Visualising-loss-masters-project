@@ -20,7 +20,7 @@ import seaborn as sns
 import ast
 from PIL import Image
 alpha= 0.1
-file_name= "all_noise_num_testing.csv"
+file_name= "combined_network_data.csv"
 df = pd.read_csv(file_name)
 x_var = "noise_std"
 
@@ -157,10 +157,10 @@ class Plotter:
             return
        
         num_images = len(images)
-        cols = 1  # Number of columns in the subplot
+        cols = 2  # Number of columns in the subplot
         rows = (num_images // cols) + (num_images % cols > 0)
         plt.clf()
-        fig, axes = plt.subplots(rows, cols, figsize=(12, 6 * rows))
+        fig, axes = plt.subplots(rows, cols, figsize=(40, 12 * rows))
         plt.subplots_adjust(wspace=0, hspace=0.05, left=0, right=1, bottom=0, top=1)
         axes = axes.flatten()  # Flatten the 2D array of axes for easy iteration
        
@@ -367,16 +367,29 @@ def plot_coverage_for_specific_multi(df, strategy1, data_name1, noise_type1, lay
         # Positions of the bars on the x-axis
         bar_positions = range(len(filtered_df))
         
+        
+        
         if (x_var == "noise_std") and ("student" in keys):
             filtered_df = filtered_df.copy()
             filtered_df[x_var] = pd.Categorical(filtered_df[x_var], categories=sorted(filtered_df[x_var].unique(), reverse=True), ordered=True)
+            filtered_df.sort_values(by=x_var, inplace=True)
+            
+            
+        specific_order_layer = ['(200, 1000)', '(400, 2000)', '(200, 1000, 1000, 1000)', '(400, 2000, 2000, 2000)']
+        if x_var == "layer_size":
+            filtered_df = filtered_df.copy()
+            filtered_df[x_var] = pd.Categorical(filtered_df[x_var], categories=specific_order_layer, ordered=True)
             filtered_df.sort_values(by=x_var, inplace=True)
         # Plot coverage as bars
         ax.bar(bar_positions, filtered_df['coverage'], width=bar_width, label='Coverage', color='blue', align='center')
         ax.set_xlabel(x_lab, fontsize=16)
         ax.set_ylabel('Coverage', fontsize=16)
+        
         ax.set_xticks([p + bar_width / 2 for p in bar_positions])
-        ax.set_xticklabels(filtered_df[x_var], fontsize=16)
+        if x_var == "layer_size":
+            ax.set_xticklabels(filtered_df[x_var], fontsize=16, rotation=15)
+        else:
+            ax.set_xticklabels(filtered_df[x_var], fontsize=16)
         ax.tick_params(axis='y', labelsize=16)
         ax.axhline(1-alpha, ls="--", color="k")
         
@@ -401,7 +414,7 @@ def plot_coverage_for_specific_multi(df, strategy1, data_name1, noise_type1, lay
     plot_graph(ax3, filtered_df2, keys2)
     #fig.suptitle(f'Coverage and Mean Width vs {x_var} for {keys1[0]} function, {keys1[1]} noise,\n {keys1[2]} layer size, {keys1[3]} sample number, {keys1[4]} noise std')
     #MANUALLY CHANGE THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    fig.suptitle(f'Comparing normal and student noise for {keys1[1]} function, {keys1[2]} layer size, {keys1[3]} sample number, {keys1[0]} strategy.',fontsize=16)
+    fig.suptitle(f'Comparing normal and student noise for {keys1[1]} function, {keys1[2]} vs {keys2[2]} noise type, {keys1[3]} sample number, {keys1[0]} strategy.',fontsize=16)
     fig.tight_layout()
     plt.show()
     
@@ -429,13 +442,21 @@ def plot_box(x_var, y_var, hue, y2_var):
 
 def plot_box_for_specific_function(df,x_var, y_var, hue, y2_var, filter_function, x_axis_name, y_var_title1,y_var_title2,x2_var):
     df = df[df["data_name"] == filter_function]
+    
+    specific_order_layer = ['(200, 1000)', '(400, 2000)', '(200, 1000, 1000, 1000)', '(400, 2000, 2000, 2000)']
+    if x_var == "layer_size":
+        df = df.copy()
+        df[x_var] = pd.Categorical(df[x_var], categories=specific_order_layer, ordered=True)
+        df.sort_values(by=x_var, inplace=True)
+    
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
    
     # First boxplot
     sns.boxplot(data=df, x=x_var, y=y_var, hue=hue, ax=ax1)
     if y_var_title1 =="Coverage":
         ax1.axhline(1-alpha, ls="--", color="k")
-
+    
+        
     ax1.set_xlabel(x_axis_name)
     ax1.set_ylabel(y_var_title1)
    
@@ -444,6 +465,10 @@ def plot_box_for_specific_function(df,x_var, y_var, hue, y2_var, filter_function
 
     ax2.set_xlabel(x_axis_name)
     ax2.set_ylabel(y_var_title2)
+    
+    if x_var == "layer_size":
+        ax1.tick_params(axis='x', rotation=15)
+        ax2.tick_params(axis='x',  rotation=15)
     fig.suptitle(f"Training data size against mean width for {filter_function} function")
     # Adjust layout to prevent overlapping
     fig.tight_layout()
@@ -489,7 +514,40 @@ def get_summary(x_var_array,x_var_label_array, filter_function="cube",y_var="cov
     plot_box_for_specific_function_and_noise_type(df,x_var="noise_std", y_var=y_var, hue=None, y2_var=y2_var, filter_function=filter_function, x_axis_name="Noise scaling factor",noise_type="student", y_var_title1=y_var_title1,y_var_title2=y_var_title2,)
     plot_box_for_specific_function_and_noise_type(df,x_var="noise_std", y_var=y_var, hue=None, y2_var=y2_var, filter_function=filter_function, x_axis_name="Noise scaling factor",noise_type="normal", y_var_title1=y_var_title1,y_var_title2=y_var_title2,)
 
-   
+def preprocess_ssc(ssc_str):
+    # Remove multiple spaces and replace with a single space
+    ssc_str = ' '.join(ssc_str.split())
+    # Replace spaces between numbers with commas
+    ssc_str = ssc_str.replace(' ', ',')
+    return ssc_str
+
+def plot_ssc(df, strategy, data_name, noise_std, num_samples, noise_type, layer_size):
+    # Filter the DataFrame based on the parameters
+    filtered_data = df[
+        (df['strategy'] == strategy) &
+        (df['data_name'] == data_name) &
+        (df['noise_std'] == noise_std) &
+        (df['num_samples'] == num_samples) &
+        (df['noise_type'] == noise_type) &
+        (df['layer_size'] == layer_size)
+    ]
+    
+    # Extract and process 'ssc' data
+    if not filtered_data.empty:
+        ssc_str = filtered_data['ssc'].values[0]
+        ssc_str = preprocess_ssc(ssc_str)
+        ssc_list = ast.literal_eval(ssc_str)[0]
+        x_labels = range(len(ssc_list))
+
+        # Plotting
+        plt.bar(x_labels, ssc_list)
+        plt.axhline(1-alpha, ls="--", color="k")
+        plt.xlabel('Index of increasing PI length')
+        plt.ylabel('SSC Value')
+        plt.title(f'Coverage for varying PI length for {strategy}, {data_name}, {noise_std}, {num_samples}, {noise_type}, {layer_size}')
+        plt.show()
+    else:
+        print("No data found for the specified parameters.")  
 
 
 #%%
@@ -502,15 +560,18 @@ plot_coverage_for_specific(df, strategy="jackknife_plus_ab", data_name="cube", n
 plot_coverage_for_specific(df, strategy="jackknife_plus_ab", data_name="linear", noise_type="normal", layer_size="(200, 1000)", num_samples=1000, noise_std=1, x_var="strategy")
 
 
-plot_coverage_for_specific_multi(df, strategy1="jackknife_plus_ab", data_name1="cube", noise_type1="normal", layer_size1="(200, 1000)", num_samples1=1000, noise_std1=1, x_var="strategy",
-                               strategy2="jackknife_plus_ab", data_name2="cube", noise_type2="student", layer_size2="(200, 1000)", num_samples2=1000, noise_std2=4, x_lab="Strategy")
+# plot_coverage_for_specific_multi(df, strategy1="jackknife_plus_ab", data_name1="cube", noise_type1="normal", layer_size1="(200, 1000)", num_samples1=1000, noise_std1=1, x_var="strategy",
+#                                strategy2="jackknife_plus_ab", data_name2="cube", noise_type2="student", layer_size2="(200, 1000)", num_samples2=1000, noise_std2=4, x_lab="Strategy")
 
 
-plot_coverage_for_specific_multi(df, strategy1="jackknife_plus_ab", data_name1="cube", noise_type1="normal", layer_size1="(200, 1000)", num_samples1=1000, noise_std1=1, x_var="noise_std",
-                               strategy2="jackknife_plus_ab", data_name2="cube", noise_type2="student", layer_size2="(200, 1000)", num_samples2=1000, noise_std2=4, x_lab="Noise Scaling Factor")
+# plot_coverage_for_specific_multi(df, strategy1="jackknife_plus_ab", data_name1="cube", noise_type1="normal", layer_size1="(200, 1000)", num_samples1=1000, noise_std1=1, x_var="noise_std",
+#                                strategy2="jackknife_plus_ab", data_name2="cube", noise_type2="student", layer_size2="(200, 1000)", num_samples2=1000, noise_std2=4, x_lab="Noise Scaling Factor")
 
-plot_coverage_for_specific_multi(df, strategy1="jackknife_plus_ab", data_name1="cube", noise_type1="normal", layer_size1="(200, 1000)", num_samples1=1000, noise_std1=1, x_var="noise_std",
-                               strategy2="jackknife_plus_ab", data_name2="cube", noise_type2="student", layer_size2="(200, 1000)", num_samples2=1000, noise_std2=4, x_lab="Noise Scaling Factor")
+plot_coverage_for_specific_multi(df, strategy1="jackknife_plus_ab", data_name1="cube", noise_type1="normal", layer_size1="(200, 1000)", num_samples1=100, noise_std1=1, x_var="layer_size",
+                               strategy2="jackknife_plus_ab", data_name2="cube", noise_type2="normal", layer_size2="(200, 1000)", num_samples2=1000, noise_std2=1, x_lab="Layer Size")
+
+plot_coverage_for_specific_multi(df, strategy1="jackknife_plus_ab", data_name1="cube", noise_type1="normal", layer_size1="(200, 1000)", num_samples1=1000, noise_std1=1, x_var="layer_size",
+                               strategy2="jackknife_plus_ab", data_name2="cube", noise_type2="student", layer_size2="(200, 1000)", num_samples2=1000, noise_std2=4, x_lab="layer_size")
 #%%
 
 base_path = 'results'
@@ -544,6 +605,7 @@ plotter = Plotter(base_path)
 # plotter.plot_images(function_name="linear", num_samples_str="300", noise_type="normal", std="0.5", strategy="cqr",layer_size="(200, 1000)", iterated_parameter="strategy",parameter_list=parameter_list_strategy)
 # plotter.plot_images(function_name="cube", num_samples_str="300", noise_type="normal", std="0.5", strategy="cqr",layer_size="(200, 1000)", iterated_parameter="strategy",parameter_list=parameter_list_strategy)
 # plotter.plot_images(function_name="sinex_het", num_samples_str="300", noise_type="normal", std="0.5", strategy="cqr",layer_size="(200, 1000)", iterated_parameter="strategy",parameter_list=parameter_list_strategy)
+plotter.plot_images(function_name="nmm", num_samples_str="1000", noise_type="normal", std="0.5", strategy="cqr",layer_size="(200, 1000)", iterated_parameter="strategy",parameter_list=parameter_list_strategy)
 
 #%%
 #plot_box(THING_TO_ITERATE_OVER,"coverage",None,"mean_width")
@@ -557,14 +619,14 @@ plotter = Plotter(base_path)
 
 
 #LINEAR PLOTTING
-x_var_array = ["strategy","num_samples"]
-x_var_label_array = ["Strategy","Training data size"]
+x_var_array = ["strategy","num_samples", "layer_size"]
+x_var_label_array = ["Strategy","Training data size","Netork layer size"]
 
 #GOOD STUFF
 # get_summary(x_var_array,x_var_label_array, filter_function="cube",y_var="coverage", y2_var="mean_width")
-# get_summary(x_var_array,x_var_label_array, filter_function="linear",y_var="coverage", y2_var="mean_width")
-# get_summary(x_var_array,x_var_label_array, filter_function="linear",y_var="mwi", y2_var="cwc", y_var_title1="Mean Winkler Score",y_var_title2="Coverage-Width Based Criterion")
+get_summary(x_var_array,x_var_label_array, filter_function="cube",y_var="coverage", y2_var="mean_width")
 get_summary(x_var_array,x_var_label_array, filter_function="cube",y_var="mwi", y2_var="cwc", y_var_title1="Mean Winkler Score",y_var_title2="Coverage-Width Based Criterion")
+# get_summary(x_var_array,x_var_label_array, filter_function="cube",y_var="mwi", y2_var="cwc", y_var_title1="Mean Winkler Score",y_var_title2="Coverage-Width Based Criterion")
 # get_summary(x_var_array,x_var_label_array, filter_function="sinex_het",y_var="coverage", y2_var="mean_width", y_var_title1="Coverage",y_var_title2="Mean Width")
 # get_summary(x_var_array,x_var_label_array, filter_function="sinex_het",y_var="mwi", y2_var="cwc", y_var_title1="Mean Winkler Score",y_var_title2="Coverage-Width Based Criterion")
 
@@ -573,42 +635,10 @@ get_summary(x_var_array,x_var_label_array, filter_function="cube",y_var="mwi", y
 #%%
 test_titles = ["1","2","3","4"]
 plotter.plot_images_from_dir('test',test_titles)
-def preprocess_ssc(ssc_str):
-    # Remove multiple spaces and replace with a single space
-    ssc_str = ' '.join(ssc_str.split())
-    # Replace spaces between numbers with commas
-    ssc_str = ssc_str.replace(' ', ',')
-    return ssc_str
 
-def plot_ssc(df, strategy, data_name, noise_std, num_samples, noise_type, layer_size):
-    # Filter the DataFrame based on the parameters
-    filtered_data = df[
-        (df['strategy'] == strategy) &
-        (df['data_name'] == data_name) &
-        (df['noise_std'] == noise_std) &
-        (df['num_samples'] == num_samples) &
-        (df['noise_type'] == noise_type) &
-        (df['layer_size'] == layer_size)
-    ]
-    
-    # Extract and process 'ssc' data
-    if not filtered_data.empty:
-        ssc_str = filtered_data['ssc'].values[0]
-        ssc_str = preprocess_ssc(ssc_str)
-        ssc_list = ast.literal_eval(ssc_str)[0]
-        x_labels = range(len(ssc_list))
 
-        # Plotting
-        plt.bar(x_labels, ssc_list)
-        plt.xlabel('Index')
-        plt.ylabel('SSC Value')
-        plt.title(f'SSC Bar Graph for {strategy}, {data_name}, {noise_std}, {num_samples}, {noise_type}, {layer_size}')
-        plt.show()
-    else:
-        print("No data found for the specified parameters.")
-
-# Example usage:
-plot_ssc(df, 'jackknife_plus', 'cube', 0, 100, 'normal', '(200, 1000)')
+#PLOT SIZE STRATIFIED COVERAGE
+plot_ssc(df, 'jackknife_plus', 'nmm', 0, 1000, 'normal', '(200, 1000)')
 
 #plot_box_for_specific_function(df,x_var="", y_var=y_var, hue=None, y2_var=y2_var, filter_function=filter_function, x_axis_name=x_var_label, y_var_title1=y_var_title1,y_var_title2=y_var_title2,x2_var=x_var)
 # noise_type = "normal"
