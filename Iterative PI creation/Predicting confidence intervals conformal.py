@@ -51,7 +51,7 @@ solver = "highs" if sp_version >= parse_version("1.6.0") else "interior-point" #
 
 np.random.seed(42)
 gamma_score = 0
-real_data = 0
+real_data = 1
 if real_data:
     out_file_name = "results_real_data.csv"
     simulate_data = 0
@@ -169,13 +169,21 @@ plot_data_gen_funcs = 0
 
 #GENERATE DATA
 out_file_name = "test_results.csv" #REMEBER TO CHANGE THE FILENAME
-#layer_size_array = [(200,1000), (200,1000,1000,1000),(400,2000),(400,2000,2000,2000)]
-layer_size_array = [(200,1000)]
-num_samples_array = [300] #Training data size
-training_data_names = [["linear"]] #Function data is generated with - iterates over this
+layer_size_array = [(200, 1000), (200, 1000, 1000, 1000),(400, 2000),(400, 2000, 2000, 2000)]
+#layer_size_array = [(200,1000)]
+num_samples_array = [300,500,1000] #Training data size
+training_data_names = [["sinex_het"],["sinex_con"],["linear"],["cube"],["nmm"]] #Function data is generated with - iterates over this
 #training_data_names = [["linear", "sinex_het","nmm","cube"]]
 #noise_types = ["normal","block","student","laplace"]
-noise_types = ["student"]
+noise_types = ["laplace"]
+
+if real_data:
+    out_file_name = "test_results_real.csv"
+    training_data_names = [["linear"]]
+    noise_types = ["laplace"]
+    num_samples_array = [300]
+    layer_size_array = [(200, 1000)]
+    
 for num_samples in num_samples_array:
     for layer_size in layer_size_array:
         for training_data_name in training_data_names:
@@ -184,7 +192,7 @@ for num_samples in num_samples_array:
                 layer_size_str=  str(layer_size)
                 match noise_type:
                     case "normal":
-                        stds = [0,0.2,0.5,1] #normal
+                        stds = [0, 0.2,0.5,1] #normal
                     case "block":
                         stds = [0.01,0.2,0.5,1] #block normal
                     case "student":
@@ -265,32 +273,28 @@ for num_samples in num_samples_array:
                     columns = df.columns.values.tolist()
                     columns.remove(target)
                     x = df[columns]
-                    #x.columns = [None] * len(x.columns)
-                    #y.columns = [None] * len(y.columns)
                     x_train, x_test,y_train,y_test = train_test_split(x,y, test_size=0.2,random_state=42)
                     x_calib = 0
                     y_calib = 0
                 
-                
-                
                 STRATEGIES = {
                     "split" :  dict(method="base",cv='split'),
-                    # "split_resid_norm" :  dict(method="base",cv='split', conformity_score=ResidualNormalisedScore()),
-                    "naive": dict(method="naive"),
+                    "split_resid_norm" :  dict(method="base",cv='split', conformity_score=ResidualNormalisedScore()),
+                    # "naive": dict(method="naive"),
                     # "jackknife": dict(method="base", cv=-1)
-                    # "jackknife_plus": dict(method="plus"),
+                    "jackknife_plus": dict(method="plus"),
                     # "jackknife_minmax": dict(method="minmax", cv=-1),
                     # "cv": dict(method="base", cv=10),
                     # "cv_plus": dict(method="plus", cv=10),
                     # "cv_minmax": dict(method="minmax", cv=10),
-                    # "jackknife_plus_ab": dict(method="plus", cv=Subsample(n_resamplings=50)),
+                    "jackknife_plus_ab": dict(method="plus", cv=Subsample(n_resamplings=50)),
                     # "jackknife_minmax_ab": dict(
                     #     method="minmax", cv=Subsample(n_resamplings=50)
                     # ),
                    
-                    # "cqr": dict(
-                    #     method="quantile", cv="split", alpha=alpha
-                    # )
+                    "cqr": dict(
+                        method="quantile", cv="split", alpha=alpha
+                    )
                     }
                 
                 #Slower strategies for debugging
