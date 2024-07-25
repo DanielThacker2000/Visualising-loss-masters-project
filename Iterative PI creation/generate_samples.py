@@ -242,3 +242,54 @@ def generate_data(num_samples=300,stds=[0.3,0.5,0.7,1],noise_types=["norm","stud
                 x_train_dict, y_train_dict = iterate_over_std(x_train_dict, y_train_dict, noise_type, std, x_vals, function)
         
     return x_train_dict, y_train_dict
+
+
+
+def generate_multi_linear_data(x_train_dict,y_train_dict,n_samples, n_features, noise=0.1, coef_low=0.001, coef_high=1.5):
+
+    
+    np.random.seed(42)
+    X = np.random.rand(n_samples, n_features)
+    coefficients = np.random.uniform(coef_low, coef_high, (n_features, 1))
+    y = X.dot(coefficients) + noise * np.random.randn(n_samples, 1)
+    
+    y_train_dict[noise] = y
+    
+    x_train_dict[noise] = X
+    return x_train_dict, y_train_dict
+
+
+def generate_multi_polynomial_data(n_samples, n_features, degree=2, noise=0.1, coef_low=0.001, coef_high=1):
+    y_train_dict = {}
+    x_train_dict = {}
+
+    np.random.seed(42)
+    X = np.random.rand(n_samples, n_features)
+    y = np.zeros((n_samples, 1))
+    for i in range(degree + 1):
+        coefficients = np.random.uniform(coef_low, coef_high, (n_features, 1))
+        y += (X ** i).dot(coefficients)
+    y += noise * np.random.randn(n_samples, 1)
+    
+    return X, y.reshape(-1, 1)
+
+
+def generate_data_multi(num_samples=300,num_features=6, stds=[0.3,0.5,0.7,1],noise_types=["norm","student-t","mixture"], function="linear_multi"):
+    y_train_dict = {}
+    x_train_dict = {}
+
+    x_vals = np.linspace(start=0, stop=10, num=num_samples)
+
+    for noise_type in noise_types:
+        if function =="poly_multi":
+            for std in stds:
+                x_train_dict, y_train_dict = randomly_generate_cube(x_train_dict, y_train_dict, noise_type, std, num_samples)
+        elif function =="linear_multi":
+            for std in stds:
+                x_train_dict, y_train_dict = generate_multi_linear_data(x_train_dict,y_train_dict,num_samples, num_features, std, coef_low=0.001, coef_high=1.5)
+        else:
+            for std in stds:
+                pass
+        
+    return x_train_dict, y_train_dict
+
